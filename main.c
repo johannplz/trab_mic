@@ -1,10 +1,13 @@
 
-//pino 5 controla a direção da rotação (HIGH p/ sentido horário, LOW p/ antihorário)
-//pino 6 controla o passo. A cada HIGH, um passo é dado (1;8 graus)
+//píno 5 controla a direção da rotação (HIGH p/ sentido horário, LOW p/ antihorário)
+//pino 6 controla o passo. A cada HIGH, um passo é dado (1,8 graus)
 
 #include "soc/gpio_reg.h"
 #include "stdint.h"
-#include "stdio.h"
+#include "driver/gptimer.h"
+
+void delay(int ciclos);
+
 
 void app_main() {
   
@@ -18,11 +21,16 @@ void app_main() {
   
   REG_WRITE(GPIO_OUT_REG, 100000); //HIGH no pino 5 > direção no sentido horario
   
+  gptimer_config_t timer_config = {
+    .clk_src = GPTIMER_CLOCK_SOURCE_XTAL;
+    .resolution_hz = 1000;
+    .direction = GPTIMER_COUNT_UP
+  };
 
 
   //#####################################
   //CONFIGURAÇÕES DO USUÁRIO 
-  uint8_t volume_desejado_ml = 30; //exemplo para 3 ml
+  uint8_t volume_desejado_ml = 3; //exemplo para 3 ml
   uint8_t diametro_seringa = 2;//diâmetro do corpo/barril da seringa em cm
   uint8_t raio_da_engr = 1;//raio da engrenagem que move o êmbolo
   //#####################################
@@ -32,30 +40,18 @@ void app_main() {
   
   uint8_t n_de_pulsos = volume_desejado_ml/(area_transv_seringa*0.0314)*(raio_da_engr); //demonstração da fórmula na documentação
 
-
-
-
-  void delay(int ciclos){
-    for (volatile int i=0;i<=1000*ciclos;i++);
+  for (volatile int i = 0; i <= n_de_pulsos; i++){
+    REG_WRITE(GPIO_OUT_REG, 1100000); //usar um timer pra gerar o pulso pra proxima semana
+    delay(500);
+    REG_WRITE(GPIO_OUT_REG, 0100000);
+    delay(500);
+    
   }
+} 
 
 
 
-  int injetar(int n_pulsos){
-    for(volatile int i=0; i<=n_pulsos; i++){
-      REG_WRITE(GPIO_OUT_W1TS_REG,1000000);
-      delay(1000);
-      REG_WRITE(GPIO_OUT_W1TC_REG,1000000);
-      delay(1000); //pq está piscando com frequencia maior que 1Hz?
-
-    }
-
-    printf("Injeção Completa!");
-    return(0);
-  }
-
-  injetar(n_de_pulsos);
+void delay(int ciclos){
+  for (volatile int i = 0; i<=1000*ciclos; i++);
 
 }
-
-//colocar uma interrupção para caso o usuário deseja abortar a injeção.
