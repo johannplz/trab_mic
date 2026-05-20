@@ -12,27 +12,31 @@ void delay(int ciclos){
 }
 
 
+int n_de_pulsos;
+int contador = 100;
 //callback (coisa que é executada quando o alarme é disparado)
-static bool callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
-  if (contador<=n_de_pulsos){   
-  gpio_set_level(6, 1);
+bool callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data)
+  {
+    if (contador<=n_de_pulsos){   
+      gpio_set_level(6, 1);
+      gpio_set_level(6, 0); 
 
-  gpio_set_level(6, 0);
+      contador++;
+    }
 
-  contador++;
-  }
+    else{
+      gpio_set_level(6, 0);
+      gpio_set_level(10, 1);//quando estiver pronto, o LED ver acende
+    } //!!! por algum motivo não está funcionando!!!
 
     return false;
-}
+  }
 //fim do callback
-
-int contador = 0;
-
 
 
 void app_main() {
     
-
+  
   //#####################################
   //CONFIGURAÇÕES DO USUÁRIO 
   uint8_t volume_desejado_ml = 3; //exemplo para 3 ml
@@ -41,9 +45,9 @@ void app_main() {
   //#####################################
   
 
-  uint8_t area_transv_seringa = 3.1415*((diametro_seringa/2)*(diametro_seringa/2)); //Area do circulo = 3.1415 * r² 
+  float area_transv_seringa = 3.1415*((diametro_seringa/2)*(diametro_seringa/2)); //Area do circulo = 3.1415 * r² 
   
-  uint8_t n_de_pulsos = volume_desejado_ml/(area_transv_seringa*0.0314)*(raio_da_engr); //demonstração da fórmula na documentação
+  int n_de_pulsos = volume_desejado_ml/(area_transv_seringa*0.0314)*(raio_da_engr); //demonstração da fórmula na documentação
   
   //Código para uma roda de 1 cm de raio:
   //como o motor tem um passo de 1.8 grau, e a roda tem 1 cm de raio => cada passo faz com que a ampola se mova aprox. 0.0314 cm
@@ -54,14 +58,14 @@ void app_main() {
 
 
 
-
-
   //início da config dos GPIOs
   gpio_reset_pin(5); //5 é o pino da direção
   gpio_reset_pin(6); //6 é o pino do step
+  gpio_reset_pin(10); //7 é o pino que acende o led verde, comunicando o final
 
   gpio_set_direction(5, GPIO_MODE_OUTPUT);
   gpio_set_direction(6, GPIO_MODE_OUTPUT);
+  gpio_set_direction(10, GPIO_MODE_OUTPUT);
 
   gpio_set_level(5, 1);//set da direção
   //-----------------------------fim da config dos GPIOs;
@@ -70,7 +74,7 @@ void app_main() {
 
   //início da config do timer
   gptimer_config_t timer_cfg = {
-      .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+      .clk_src = GPTIMER_CLK_SRC_DEFAULT,//quando upar na placa, trocar pra APB
       .resolution_hz = 1000,
       .direction = GPTIMER_COUNT_UP
   };
@@ -103,4 +107,6 @@ void app_main() {
 
 
 }
+
+//usar o I2C com um display e interface do usuário pra proxima parte da disciplina
 
